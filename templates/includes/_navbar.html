@@ -1,0 +1,48 @@
+
+  
+  <nav class="navbar navbar-expand-sm navbar-dark bg-dark align-top px-5">
+      <div class="container">
+        <a href="/" class="navbar-brand h1 mb-0">Home</a>
+
+        <ul class="navbar-nav me-auto">
+          <li class="nav-item"><a class="nav-link" href="/about">About</a></li>
+          {% if session['logged_in'] %}
+            <li class="nav-item"><a href="/dashboard" class="nav-link">Dashboard</a></li>
+          {% endif %}  
+          </ul>
+
+        {% if session['logged_in'] %}
+          <ul class="navbar-nav ms-auto">
+            <li class="nav-item">
+              <a href="/logout" class="nav-link">Log Out</a>
+            </li> 
+          </ul>
+          
+          <form action="{{url_for('logout')}}" method="POST">
+            <input type="hidden" id="userInput" name="userInput">
+            <button type="submit" name="logoutButton" value="logoutButton" onclick="confirmLogout()">Log Out</button>
+          </form>
+
+        {% endif %}
+      </div>
+    </nav>
+
+    <script>
+
+      function confirmLogout()
+      {
+        if (confirm('Are you sure you want to logout?') == true)
+        {
+          alert('logging out');
+          document.getElementById("userInput").value = 1;
+        }
+        else
+        {
+          document.getElementById("userInput").value = 0;
+          return 0;
+        }
+      }
+
+    </script>
+
+ 
