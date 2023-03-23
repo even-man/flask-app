@@ -5,6 +5,7 @@ from passlib.hash import sha256_crypt
 from databaseConfig import getHost, getDB, getPassword, getUser
 import sqlite3
 from setup import SecretKey, DatabasePath
+import datetime
 
 #app setup
 app = Flask(__name__)
@@ -57,14 +58,112 @@ def home():
             message = 'Invalid Login'
             return render_template('home.html', message=message)
 
+
+#dict for standing filter
+standingFilters = {
+    'GoodStanding' : 'Good Standing',
+    'FacilityBanSemester' : 'Facility Ban (Semester)',
+    'PermaBan' : 'PermaBan',
+    'FacilityBanMonth' : 'Facility Ban (One Month)'
+}
+
+
 # dashboard route : GET
 # GET
 #   returns the dashboard.html template IF user logged in
-@app.route('/dashboard')
+@app.route('/dashboard', methods=['GET', 'POST'])
 @is_logged_in
 def dashboard():
-    return render_template('dashboard.html')
-       
+
+    if request.method == 'GET':
+        return render_template('dashboard.html')
+    
+    if request.method == 'POST':
+        
+        username = request.form.get('username')
+        numbermarks = request.form.get('numbermarks')
+        reason = request.form.get('reason')
+        issuer = request.form.get('issuer')
+        date = datetime.date.today().strftime('%Y-%m-%d')
+        
+        error = 'All inputs must contain info'
+
+        if username == '' or reason == '' or issuer == '' or numbermarks == '':
+            return render_template('dashboard.html', error = error)
+        
+        data = search_by_username(username)
+
+        if len(data) == 0:
+            #create new user and create new marks
+        else:
+            #update user in system and create new marks
+
+
+        return render_template('dashboard.html')
+
+# users route : GET POST
+# GET
+#   returns a form for filtering users and searching by username
+
+@app.route('/users', methods = ['GET', 'POST'])
+@is_logged_in
+def users():
+    
+    if request.method == 'GET':
+        return render_template('users.html')
+    if request.method == 'POST':
+
+        value1 = request.form.get('Users')
+        app.logger.info(f'Users Value from form: {value1}')
+
+
+        if request.form.get('Users') == 'standingForm':
+            app.logger.info('standing form submitted')
+
+            standing = request.form['standings']
+            app.logger.info(f'standing filter: {standing}')
+
+            sql = f'SELECT * FROM Users WHERE CurrentStanding == "{standingFilters[standing]}"'
+
+            app.logger.info(f'sql: {sql}')
+
+            data = sql_data_to_list_of_dicts(DB_PATH, sql)
+            
+            return render_template('users.html', data=data)
+
+        if request.form.get('Users') == 'usernameForm':
+            app.logger.info('username search form submitted')
+
+            username = request.form['username']
+            app.logger.info(f'username: {username}')
+
+            sql = f'SELECT * FROM Users WHERE UserName == "{username}"'
+            data = sql_data_to_list_of_dicts(DB_PATH, sql)
+
+            return render_template('users.html', data=data)
+
+@app.route('/marks', methods=['GET', 'POST'])
+@is_logged_in
+def marks():
+
+    if request.method == 'GET':
+        return render_template('marks.html')
+    if request.method == 'POST':
+
+        if request.form.get('marks') == 'usernameFilter':
+            #search by username
+            username = request.form['username']
+            sql = f'SELECT * FROM Marks WHERE UserName = "{username}"'
+            data = sql_data_to_list_of_dicts(DB_PATH, sql)
+            return render_template('marks.html', data=data)
+
+        if request.form.get('marks') == 'refresh':
+            #return all data
+            sql = f'SELECT * FROM Marks'
+            data = sql_data_to_list_of_dicts(DB_PATH, sql)
+            return render_template('marks.html', data=data)
+
+
 # about route : GET
 # GET
 #   returns the about.html template
@@ -78,21 +177,12 @@ def about():
 #   IF userInput TRUE, clear session and redirect home
 #   ELSE redirect to dashboard
 
-# ISSUES
-#   despite user input in js script alert window, always redirects to home.html
-@app.route("/logout", methods=['POST'])
+@app.route("/logout", methods=['GET', 'POST'])
 def logout():
+     session.clear()
+     return redirect(url_for('home'))
 
-    if request.method == 'POST':
-        userInput = request.form.get("userInput")
-        app.logger.info(f'userInput: {userInput}')
 
-        if userInput:
-            session.clear()
-            return redirect(url_for('home'))
-
-        else:
-            return redirect(url_for('/dashboard'))
 
 # DATA ACCESS METHODS #
 
@@ -118,8 +208,12 @@ def login(data, username, password):
                  return True
     return False
 
+def search_by_username(username):
+    sql = f'SELECT * FROM Users WHERE UserName == "{username}"'
+    data = sql_data_to_list_of_dicts(DB_PATH, sql)
+    return data
 
 # RUN APP #
 
 if __name__ == '__main__':
-    app.run(debug = True)
+    app.run(debug = True, host='0.0.0.0')
