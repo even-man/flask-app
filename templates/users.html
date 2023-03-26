@@ -31,6 +31,12 @@
     </div>
 </div>
 
+{% if session['messages'] %}
+    <div>
+        <p class="alert alert-success mt-4 px-5">{{ session['messages'] }}</p>
+    </div>
+{% endif %}
+
 <div class="container align-items-center justify-content-center py-5">
     <table class="table">
         <tr>
@@ -38,6 +44,8 @@
             <th class="px-4 text-center">Number Marks</th>
             <th class="px-4 text-center">Current Standing</th>
             <th class="px-4 text-center">Recent Date</th>
+            <th class="px-4 text-center">Delete / Edit</th>
+
         </tr>
 
         {% for item in data %}
@@ -47,6 +55,9 @@
                 <td class="text-center">{{ item['NumberMarks'] }}</td>
                 <td class="text-center">{{ item['CurrentStanding'] }}</td>
                 <td class="text-center">{{ item['RecentDate'] }}</td>
+                <td class="text-center"><a href="/delete/{{ item['UserName'] }}"><i class="bi bi-trash px-3"></i></a>
+                    <a href="/update/{{ item['UserName'] }}"><i class="bi bi-pencil"></i></a></td>
+
             </tr>
 
         {% endfor %}

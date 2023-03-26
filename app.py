@@ -1,8 +1,5 @@
 from functools import wraps
 from flask import Flask, render_template, flash, redirect, url_for, session, request
-from wtforms import Form, StringField, TextAreaField, PasswordField, validators
-from passlib.hash import sha256_crypt
-from databaseConfig import getHost, getDB, getPassword, getUser
 import sqlite3
 from setup import SecretKey, DatabasePath
 import datetime
@@ -74,6 +71,7 @@ standingFilters = {
 @app.route('/dashboard', methods=['GET', 'POST'])
 @is_logged_in
 def dashboard():
+    session['messages'] = str()
 
     if request.method == 'GET':
         return render_template('dashboard.html')
@@ -87,6 +85,7 @@ def dashboard():
         date = datetime.date.today().strftime('%Y-%m-%d')
         
         error = 'All inputs must contain info'
+        message = 'Marks successfully entered'
 
         if username == '' or reason == '' or issuer == '' or numbermarks == '':
             return render_template('dashboard.html', error = error)
@@ -94,12 +93,16 @@ def dashboard():
         data = search_by_username(username)
 
         if len(data) == 0:
-            #create new user and create new marks
+            insert_user_and_marks(username, numbermarks, date, reason, issuer)
+            return render_template('dashboard.html', message = message)
         else:
-            #update user in system and create new marks
+            currentMarksTotal = data[0]['NumberMarks']
+            app.logger.info(currentMarksTotal)
+
+            update_user_insert_marks(username, numbermarks, date, reason, issuer, currentMarksTotal)
 
 
-        return render_template('dashboard.html')
+            return render_template('dashboard.html', message=message)
 
 # users route : GET POST
 # GET
@@ -145,6 +148,7 @@ def users():
 @app.route('/marks', methods=['GET', 'POST'])
 @is_logged_in
 def marks():
+    session['messages'] = str()
 
     if request.method == 'GET':
         return render_template('marks.html')
@@ -169,6 +173,7 @@ def marks():
 #   returns the about.html template
 @app.route("/about")
 def about():
+    session['messages'] = str()
     return render_template("about.html")
 
 # logout route : POST
@@ -182,6 +187,52 @@ def logout():
      session.clear()
      return redirect(url_for('home'))
 
+
+@app.route("/update/<string:username>", methods = ['GET', 'POST'])
+@is_logged_in
+def update(username):
+    session['messages'] = str()
+
+    if request.method == 'GET':
+
+        data = sql_data_to_list_of_dicts(DB_PATH, f'SELECT * FROM Users WHERE UserName = "{username}"')
+        date = datetime.date.today().strftime('%Y-%m-%d')
+
+        return render_template('update.html', data=data, date=date)
+
+    if request.method == 'POST':
+
+        if request.form.get('formUpdate') == 'submitForm':
+
+            username = request.form.get('username')
+            numbermarks = request.form.get('numbermarks')
+            date = datetime.date.today().strftime('%Y-%m-%d')
+
+            update_user(username, numbermarks, date)
+
+            session['messages'] = 'User successfully updated'
+            return redirect(url_for('users'))
+
+        if request.form.get('formUpdate') == 'cancelForm':
+            return redirect(url_for('users'))
+
+
+@app.route('/delete/<string:username>', methods = ['GET', 'POST'])
+@is_logged_in
+def delete(username):
+    session['messages'] = str()
+
+    if request.method == 'GET':
+        data = sql_data_to_list_of_dicts(DB_PATH, f'SELECT * FROM Users WHERE UserName = "{username}"')
+        return render_template('delete.html', data=data)
+
+    if request.method == 'POST':
+        if request.form.get('DeleteForm') == 'submitDelete':
+            delete_user(username)
+            session['messages'] = 'User successfully deleted'
+            return redirect(url_for('users'))
+        if request.form.get('DeleteForm') == 'cancelDelete':
+            return redirect(url_for('users'))
 
 
 # DATA ACCESS METHODS #
@@ -212,6 +263,56 @@ def search_by_username(username):
     sql = f'SELECT * FROM Users WHERE UserName == "{username}"'
     data = sql_data_to_list_of_dicts(DB_PATH, sql)
     return data
+
+def insert_user_and_marks(username, numbermarks, date, reason, issuer):
+    sql_insert_new_user = f'INSERT INTO Users(UserName, CurrentStanding, NumberMarks, RecentDate) values("{username}", "{standing_resolver(numbermarks)}",{numbermarks},"{date}")'
+    sql_insert_new_marks = f'INSERT INTO Marks(UserName, NumberMarks, Reason, Date, Issuer) values("{username}", {numbermarks}, "{reason}", "{date}", "{issuer}")'
+
+    conn = sqlite3.connect(DB_PATH)
+    cur = conn.cursor()
+    cur.execute(sql_insert_new_user)
+    cur.execute(sql_insert_new_marks)
+
+    conn.commit()
+    conn.close()
+
+def standing_resolver(numbermarks):
+    if int(numbermarks) <= 15:
+        return 'Good Standing'
+    if int(numbermarks) > 15 and int(numbermarks) < 30:
+        return 'Checkout Ban (One Month)'
+    if int(numbermarks) >= 30:
+        return 'Facility Ban (Semester)'
+
+def update_user_insert_marks(username, numbermarks, date, reason, issuer, currentMarksTotal):
+
+
+    sql_insert_new_marks = f'INSERT INTO Marks(UserName, NumberMarks, Reason, Date, Issuer) values("{username}", {numbermarks}, "{reason}", "{date}", "{issuer}")'
+    sql_update_user = f'UPDATE Users SET NumberMarks = "{int(numbermarks) + int(currentMarksTotal)}", CurrentStanding = "{standing_resolver(int(numbermarks) + int(currentMarksTotal))}", RecentDate = "{date}" WHERE UserName = "{username}"'
+
+    conn = sqlite3.connect(DB_PATH)
+    cur = conn.cursor()
+    cur.execute(sql_insert_new_marks)
+    cur.execute(sql_update_user)
+
+    conn.commit()
+    conn.close()
+
+def update_user(username, numbermarks, date):
+    sql_update_user = f'UPDATE Users SET NumberMarks = "{numbermarks}", UserName = "{username}", RecentDate = "{date}", CurrentStanding = "{standing_resolver(int(numbermarks))}" WHERE UserName = "{username}"'
+    conn = sqlite3.connect(DB_PATH)
+    cur = conn.cursor()
+    cur.execute(sql_update_user)
+    conn.commit()
+    conn.close()
+
+def delete_user(username):
+    sql_delete_user = f'DELETE FROM Users WHERE UserName = "{username}"'
+    conn = sqlite3.connect(DB_PATH)
+    cur = conn.cursor()
+    cur.execute(sql_delete_user)
+    conn.commit()
+    conn.close()
 
 # RUN APP #
 
