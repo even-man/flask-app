@@ -32,7 +32,6 @@ def is_logged_in(f):
 #   sets session
 @app.route("/", methods = ['GET', 'POST'])
 def home():
-    session.clear()
     if request.method == 'GET':
         return render_template("home.html")
     if request.method == 'POST':
@@ -235,6 +234,33 @@ def delete(username):
             return redirect(url_for('users'))
 
 
+@app.route('/manage', methods = ['POST', 'GET'])
+@is_logged_in
+def manage():
+
+    summaries = sql_data_to_list_of_dicts(DB_PATH, f'SELECT * FROM Summaries')
+
+    if request.method == 'GET':
+        if session['username'] != 'stcmanage':
+            session['messages'] = 'Login to access this resource'
+            return redirect(url_for('home'))
+        else:
+            return render_template('manage.html', summaries = summaries)
+    
+    if request.method == 'POST':
+
+        if request.form.get('confirmReset') == 'on':
+            date = datetime.date.today().strftime('%Y-%m-%d')
+            reset_users(date)
+            session['messages'] = 'Users reset.'
+            return render_template('manage.html', summaries = summaries)
+        else:
+            app.logger.info('Check is not on')
+            return render_template('manage.html', error = 'Press check to reset users', summaries = summaries)
+        
+
+
+
 # DATA ACCESS METHODS #
 
 # get sql data and return as dict object  
@@ -313,6 +339,17 @@ def delete_user(username):
     cur.execute(sql_delete_user)
     conn.commit()
     conn.close()
+
+def reset_users(date):
+    sql_reset_users = f'UPDATE Users SET NumberMarks = 0, CurrentStanding = "Good Standing", Recorded = 0, RecentDate = "{date}" WHERE CurrentStanding != "PermaBan"'
+    sql_reset_summaries = f'UPDATE Summaries SET Value = 0 WHERE Field = "TotalMarks"'
+    conn = sqlite3.connect(DB_PATH)
+    cur = conn.cursor()
+    cur.execute(sql_reset_users)
+    cur.execute(sql_reset_summaries)
+    conn.commit()
+    conn.close()
+    
 
 # RUN APP #
 
