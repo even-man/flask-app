@@ -317,8 +317,10 @@ def standing_resolver(numbermarks):
         return 'Good Standing'
     if int(numbermarks) > 15 and int(numbermarks) < 30:
         return 'Checkout Ban (One Month)'
-    if int(numbermarks) >= 30:
+    if int(numbermarks) >= 30 and int(numbermarks) < 999:
         return 'Facility Ban (Semester)'
+    if int(numbermarks) >= 999:
+        return 'PermaBan'
 
 def update_user_insert_marks(username, numbermarks, date, reason, issuer, currentMarksTotal):
 
