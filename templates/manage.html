@@ -13,7 +13,9 @@
             <p><b>WARNING</b></p>
             <p>This action sets all users who are not permanently banned to 0, and cannot be undone.</p>
         </div>
+
         <form action="" method="POST">
+            <input type="hidden" name="Manage" value="resetForm">
             <input type="submit" class="btn btn-primary" value="Reset Marks" name="resetSubmit"> <br>
             <div class="p-3">
                 <label for="confirmReset" class="form-label">Confirm Reset: </label>
@@ -37,21 +39,49 @@
 </div>
 
 <div>
-    <h3>User Statistics</h3>
-    <div class="card p-3 text-center" style="width: 18rem;
-                                             height: 20rem;">
-        <table class="table">
+    <h3>Users Not Recorded</h3>
 
-            {% for summary in summaries %}
+        <div class="py-3" style="display: flex;">
+            <p class="px-3"><i> Return by Standing :</i></p>
+            <form action="" method="POST" id="standingsFilterForm">
+                <input type="hidden" name="Manage" value="standingForm">
+                <select name="standings" id="standings">
+                    <option value="GoodStanding">Good Standing</option>
+                    <option value="FacilityBanSemester">Facility Ban (Semester)</option>
+                    <option value="PermaBan">PermaBan</option>
+                    <option value="FacilityBanMonth">Facility Ban (One Month)</option>
+                </select>
+                <input type="submit" value="Submit">
+            </form>
+        </div>
+
+        {% if filter %}
+            <p>Showing users with: <i>{{ filter }}</i></p>
+        {% endif %}
+
+    <table class="table">
+        <tr>
+            <th class="text-center">Username</th>
+            <th class="text-center">Number Marks</th>
+            <th class="text-center">Current Standing</th>
+            <th class="text-center">Recent Date</th>
+            <th class="text-center">Mark 'Recorded'</th>
+        </tr>
+            {% for user in users %}
             <tr>
-                <td>{{ summary['Field'] }}</td>
-                <td>{{ summary['Value'] }}</td>
+                <td class="text-center">{{user['UserName']}}</td>
+                <td class="text-center">{{user['NumberMarks']}}</td>
+                <td class="text-center">{{user['CurrentStanding']}}</td>
+                <td class="text-center">{{user['RecentDate']}}</td>
+                <td class="text-center"><input type="submit" value="Mark Recorded"></td>
             </tr>
+
             {% endfor %}
 
-        </table>
-    </div>
+    </table>
 </div>
+
+
 </div>
 </div>
 

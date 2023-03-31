@@ -249,15 +249,25 @@ def manage():
     
     if request.method == 'POST':
 
-        if request.form.get('confirmReset') == 'on':
-            date = datetime.date.today().strftime('%Y-%m-%d')
-            reset_users(date)
-            session['messages'] = 'Users reset.'
-            return render_template('manage.html', summaries = summaries)
-        else:
-            app.logger.info('Check is not on')
-            return render_template('manage.html', error = 'Press check to reset users', summaries = summaries)
-        
+        if request.form.get('Manage') == 'resetForm':
+            # RESET MARKS FORM
+            if request.form.get('confirmReset') == 'on':
+                date = datetime.date.today().strftime('%Y-%m-%d')
+                reset_users(date)
+                session['messages'] = 'Users reset.'
+                return render_template('manage.html', summaries = summaries)
+            if request.form.get('confirmReset') != 'on':
+                app.logger.info('Check is not on')
+                return render_template('manage.html', error = 'Press check to reset users', summaries = summaries)
+            
+        if request.form.get('Manage') == 'standingForm':
+            standing = request.form.get('standings') 
+            filter = standingFilters[standing]
+            sql = f'SELECT * FROM Users WHERE CurrentStanding == "{filter}" AND Recorded = 0'
+            users = sql_data_to_list_of_dicts(DB_PATH, sql)
+            app.logger.info(sql)
+
+            return render_template('manage.html', users = users, filter=filter)
 
 
 
@@ -349,6 +359,7 @@ def reset_users(date):
     cur.execute(sql_reset_summaries)
     conn.commit()
     conn.close()
+
     
 
 # RUN APP #
