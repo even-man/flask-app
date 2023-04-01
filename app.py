@@ -60,7 +60,7 @@ standingFilters = {
     'GoodStanding' : 'Good Standing',
     'FacilityBanSemester' : 'Facility Ban (Semester)',
     'PermaBan' : 'PermaBan',
-    'FacilityBanMonth' : 'Facility Ban (One Month)'
+    'CheckoutBanMonth' : 'Checkout Ban (One Month)'
 }
 
 
@@ -249,8 +249,8 @@ def manage():
     
     if request.method == 'POST':
 
+        # reset form
         if request.form.get('Manage') == 'resetForm':
-            # RESET MARKS FORM
             if request.form.get('confirmReset') == 'on':
                 date = datetime.date.today().strftime('%Y-%m-%d')
                 reset_users(date)
@@ -259,7 +259,8 @@ def manage():
             if request.form.get('confirmReset') != 'on':
                 app.logger.info('Check is not on')
                 return render_template('manage.html', error = 'Press check to reset users', summaries = summaries)
-            
+
+        # standing form     
         if request.form.get('Manage') == 'standingForm':
             standing = request.form.get('standings') 
             filter = standingFilters[standing]
@@ -268,6 +269,17 @@ def manage():
             app.logger.info(sql)
 
             return render_template('manage.html', users = users, filter=filter)
+        
+        # # set recorded
+        # if request.form.get('Manage') == 'setRecorded':
+
+
+@app.route('/record/<string:user>', methods=['GET', 'POST'])
+@is_logged_in
+def record(user):
+    update_recorded(user)
+    return redirect(url_for('manage'))
+
 
 
 
@@ -301,7 +313,7 @@ def search_by_username(username):
     return data
 
 def insert_user_and_marks(username, numbermarks, date, reason, issuer):
-    sql_insert_new_user = f'INSERT INTO Users(UserName, CurrentStanding, NumberMarks, RecentDate) values("{username}", "{standing_resolver(numbermarks)}",{numbermarks},"{date}")'
+    sql_insert_new_user = f'INSERT INTO Users(UserName, CurrentStanding, NumberMarks, RecentDate, Recorded) values("{username}", "{standing_resolver(numbermarks)}",{numbermarks},"{date}", 0)'
     sql_insert_new_marks = f'INSERT INTO Marks(UserName, NumberMarks, Reason, Date, Issuer) values("{username}", {numbermarks}, "{reason}", "{date}", "{issuer}")'
 
     conn = sqlite3.connect(DB_PATH)
@@ -357,6 +369,14 @@ def reset_users(date):
     cur = conn.cursor()
     cur.execute(sql_reset_users)
     cur.execute(sql_reset_summaries)
+    conn.commit()
+    conn.close()
+
+def update_recorded(username):
+    sql = f'UPDATE Users SET Recorded = 1 WHERE UserName = "{username}"'
+    conn = sqlite3.connect(DB_PATH)
+    cur = conn.cursor()
+    cur.execute(sql)
     conn.commit()
     conn.close()
 

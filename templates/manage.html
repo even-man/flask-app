@@ -49,7 +49,7 @@
                     <option value="GoodStanding">Good Standing</option>
                     <option value="FacilityBanSemester">Facility Ban (Semester)</option>
                     <option value="PermaBan">PermaBan</option>
-                    <option value="FacilityBanMonth">Facility Ban (One Month)</option>
+                    <option value="CheckoutBanMonth">Checkout Ban (One Month)</option>
                 </select>
                 <input type="submit" value="Submit">
             </form>
@@ -73,7 +73,7 @@
                 <td class="text-center">{{user['NumberMarks']}}</td>
                 <td class="text-center">{{user['CurrentStanding']}}</td>
                 <td class="text-center">{{user['RecentDate']}}</td>
-                <td class="text-center"><input type="submit" value="Mark Recorded"></td>
+                <td class="text-center"><a href="/record/{{user['UserName']}}">Record</a></td>
             </tr>
 
             {% endfor %}
