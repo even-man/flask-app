@@ -60,7 +60,8 @@ standingFilters = {
     'GoodStanding' : 'Good Standing',
     'FacilityBanSemester' : 'Facility Ban (Semester)',
     'PermaBan' : 'PermaBan',
-    'CheckoutBanMonth' : 'Checkout Ban (One Month)'
+    'CheckoutBanMonth' : 'Checkout Ban (One Month)',
+    'RecordedUsers' : 1
 }
 
 
@@ -264,20 +265,24 @@ def manage():
         if request.form.get('Manage') == 'standingForm':
             standing = request.form.get('standings') 
             filter = standingFilters[standing]
-            sql = f'SELECT * FROM Users WHERE CurrentStanding == "{filter}" AND Recorded = 0'
+
+            if standing == 'RecordedUsers':
+                sql = f'SELECT * FROM Users WHERE Recorded == 1'
+                filter = 'recorded users'
+            else:
+                sql = f'SELECT * FROM Users WHERE CurrentStanding == "{filter}" AND Recorded = 0'
+            
             users = sql_data_to_list_of_dicts(DB_PATH, sql)
             app.logger.info(sql)
 
             return render_template('manage.html', users = users, filter=filter)
         
-        # # set recorded
-        # if request.form.get('Manage') == 'setRecorded':
 
 
-@app.route('/record/<string:user>', methods=['GET', 'POST'])
+@app.route('/record/<string:user>/<string:record>', methods=['GET', 'POST'])
 @is_logged_in
-def record(user):
-    update_recorded(user)
+def record(user, record):
+    update_recorded(user, record)
     return redirect(url_for('manage'))
 
 
@@ -374,8 +379,15 @@ def reset_users(date):
     conn.commit()
     conn.close()
 
-def update_recorded(username):
-    sql = f'UPDATE Users SET Recorded = 1 WHERE UserName = "{username}"'
+def update_recorded(username, record):
+
+    record = int(record)
+    if record == 0:
+        newRecordValue = 1
+    else:
+        newRecordValue = 0
+
+    sql = f'UPDATE Users SET Recorded = {newRecordValue} WHERE UserName = "{username}"'
     conn = sqlite3.connect(DB_PATH)
     cur = conn.cursor()
     cur.execute(sql)

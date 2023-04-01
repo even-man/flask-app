@@ -11,7 +11,7 @@
     <div class="card p-3 text-center" style="width: 18rem; height: 20rem;">
         <div class="alert alert-danger py-3">
             <p><b>WARNING</b></p>
-            <p>This action sets all users who are not permanently banned to 0, and cannot be undone.</p>
+            <p>This action fully resets all users not PermaBanned, and cannot be undone.</p>
         </div>
 
         <form action="" method="POST">
@@ -39,10 +39,10 @@
 </div>
 
 <div>
-    <h3>Users Not Recorded</h3>
+    <h3>Record Users</h3>
 
         <div class="py-3" style="display: flex;">
-            <p class="px-3"><i> Return by Standing :</i></p>
+            <p class="px-3"><i> Return by  :</i></p>
             <form action="" method="POST" id="standingsFilterForm">
                 <input type="hidden" name="Manage" value="standingForm">
                 <select name="standings" id="standings">
@@ -50,13 +50,15 @@
                     <option value="FacilityBanSemester">Facility Ban (Semester)</option>
                     <option value="PermaBan">PermaBan</option>
                     <option value="CheckoutBanMonth">Checkout Ban (One Month)</option>
+                    <option value="RecordedUsers">Recorded Users</option>
                 </select>
                 <input type="submit" value="Submit">
             </form>
         </div>
+        
 
         {% if filter %}
-            <p>Showing users with: <i>{{ filter }}</i></p>
+            <p>Showing users: <i>{{ filter }}</i></p>
         {% endif %}
 
     <table class="table">
@@ -73,7 +75,15 @@
                 <td class="text-center">{{user['NumberMarks']}}</td>
                 <td class="text-center">{{user['CurrentStanding']}}</td>
                 <td class="text-center">{{user['RecentDate']}}</td>
-                <td class="text-center"><a href="/record/{{user['UserName']}}">Record</a></td>
+                <td class="text-center"><a href="/record/{{ user['UserName'] }}/{{ user['Recorded'] }}">
+
+                    {% if user['Recorded'] == 0 %}
+                        Record
+                    {% else %}
+                        Unrecord
+                    {% endif %}
+
+                </a></td>
             </tr>
 
             {% endfor %}
